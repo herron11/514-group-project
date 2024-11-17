@@ -9,6 +9,34 @@ using namespace std;
 
 vector<pid_t> activeProcesses; 
 
+void createProcess() {
+    pid_t pid = fork();
+    if (pid < 0) {
+        cerr << "Failed to fork a process!\n";
+        exit(EXIT_FAILURE);
+    } else if (pid == 0) {
+        cout << "Child Process: PID " << getpid() << ", Parent PID " << getppid() << "\n";
+        cout.flush(); 
+        while (true) {
+            sleep(1); //needed so the child and parent process print before the menu prints again
+        }
+    } else {
+        usleep(50000); //needed so the child and parent process print before the menu prints again (50ms delay)
+        cout << "Parent Process: Created Child with PID " << pid << "\n";
+        activeProcesses.push_back(pid);
+        cout.flush();
+    }
+}
+void listProcesses() {
+    if (activeProcesses.empty()) {
+        cout << "No active processes.\n";
+    } else {
+        cout << "Active Processes:\n";
+        for (pid_t pid : activeProcesses) {
+            cout << " - PID: " << pid << "\n";
+        }
+    }
+}
 int main() {
     int choice;
     pid_t pidToTerminate;
