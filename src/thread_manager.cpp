@@ -27,6 +27,19 @@ void createProcess() {
         cout.flush();
     }
 }
+void terminateProcess(pid_t pid) {
+    auto it = find(activeProcesses.begin(), activeProcesses.end(), pid);
+    if (it != activeProcesses.end()) {
+        if (kill(pid, SIGTERM) == 0) { 
+            cout << "Terminated Process with PID " << pid << "\n";
+            activeProcesses.erase(it); 
+        } else {
+            cerr << "Failed to terminate Process with PID " << pid << "\n";
+        }
+    } else {
+        cerr << "Process with PID " << pid << " not active!\n";
+    }
+}
 void listProcesses() {
     if (activeProcesses.empty()) {
         cout << "No active processes.\n";
