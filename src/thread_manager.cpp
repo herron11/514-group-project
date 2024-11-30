@@ -7,7 +7,16 @@
 
 using namespace std;
 
-vector<pid_t> activeProcesses; 
+vector<pid_t> activeProcesses;
+vector<vector<int>> allocation; 
+vector<vector<int>> request;    
+vector<int> available; 
+
+void initializeResources(int resourceCount, int processCount) {
+    allocation = vector<vector<int>>(processCount, vector<int>(resourceCount, 0));
+    request = vector<vector<int>>(processCount, vector<int>(resourceCount, 0));
+    available = vector<int>(resourceCount, 3);
+}
 
 void createProcess() {
     pid_t pid = fork();
@@ -50,25 +59,67 @@ void listProcesses() {
         }
     }
 }
+
+bool detectDeadlock() {
+    int processCount = allocation.size();
+    int resourceCount = available.size();
+    vector<bool> finish(processCount, false);
+    vector<int> work = available;
+
+    bool progress = true;
+    while (progress) {
+        progress = false;
+        for (int i = 0; i < processCount; ++i) {
+            if (!finish[i]) {
+                bool canAllocate = true;
+                for (int j = 0; j < resourceCount; ++j) {
+                    if (request[i][j] > work[j]) {
+                        canAllocate = false;
+                        break;
+                    }
+                }
+                if (canAllocate) {
+                    for (int j = 0; j < resourceCount; ++j) {
+                        work[j] += allocation[i][j];
+                    }
+                    finish[i] = true;
+                    progress = true;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < processCount; ++i) {
+        if (!finish[i]) {
+            cout << "Deadlock detected! Process " << activeProcesses[i] << " is in a deadlock state.\n";
+            return true;
+        }
+    }
+
+    cout << "No deadlock detected.\n";
+    return false;
+}
 int main() {
     int choice;
     pid_t pidToTerminate;
+    int resourceCount = 3; // Example: 3 resource types
 
-    cout << "Process and Thread Manager\n";
+    initializeResources(resourceCount, 0);
+    cout << "Process and Thread Manager with Deadlock Detection\n";
 
     while (true) {
         cout << "\nMenu:\n";
         cout << "1. Create a New Process\n";
         cout << "2. Terminate a Process\n";
         cout << "3. List Active Processes\n";
-        cout << "4. Exit\n";
+        cout << "4. Detect Deadlock\n";
+        cout << "5. Exit\n";
         cout << "Enter your choice: ";
-        cout.flush(); 
         cin >> choice;
 
         switch (choice) {
             case 1:
-                createProcess();
+                createProcess(resourceCount);
                 break;
 
             case 2:
@@ -82,9 +133,13 @@ int main() {
                 break;
 
             case 4:
+                detectDeadlock();
+                break;
+
+            case 5:
                 cout << "Exiting. Terminating all active processes...\n";
                 for (pid_t pid : activeProcesses) {
-                    kill(pid, SIGTERM); 
+                    kill(pid, SIGTERM);
                 }
                 activeProcesses.clear();
                 return 0;
