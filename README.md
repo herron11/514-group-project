@@ -13,11 +13,11 @@ This project implements a Process and Thread Manager that allows users to create
 
 Clone the repository in your ROS2 workspace:
 ```
-`git clone https://github.com/herron11/514-group-project.git`
+git clone https://github.com/herron11/514-group-project.git
 ```
 Move into the 514-group-project/src folder:
 ```
-`cd 514-group-project/src`
+cd 514-group-project/src
 ```
 
 Build the makefile and run the program:
