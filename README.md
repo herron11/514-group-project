@@ -12,6 +12,18 @@ This project implements a Process and Thread Manager that allows users to create
 ### How To Run The Program
 
 Clone the repository in your ROS2 workspace:
+<br>
 `git clone https://github.com/herron11/514-group-project.git`
+
+Move into the 514-group-project/src folder
+<br>
+`cd 514-group-project/src`
+
+Build the makefile and run the program
+<br>
+```make```
+<br>
+`./thread_manager`
+
 
 
