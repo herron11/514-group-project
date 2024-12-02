@@ -12,18 +12,38 @@ This project implements a Process and Thread Manager that allows users to create
 ### How To Run The Program
 
 Clone the repository in your ROS2 workspace:
-<br>
+```
 `git clone https://github.com/herron11/514-group-project.git`
-
+```
 Move into the 514-group-project/src folder:
-<br>
+```
 `cd 514-group-project/src`
+```
 
 Build the makefile and run the program:
-<br>
-```make```
-<br>
-`./thread_manager`
+```
+make
+./thread_manager
+```
+
+### Usage
+
+After running the program, you will see a menu with the following options:
+
+- Create a New Process: Forks a new child process and tracks its PID.
+
+- Create a New Thread: Starts a new thread that simulates work.
+
+- Terminate a Process: Enter the PID of the process you want to terminate.
+
+- List Active Processes: Displays all active processes and their PIDs.
+
+- List Active Threads: Displays all active threads.
+
+- Detect Deadlock: Runs the deadlock detection algorithm to identify any processes in a deadlock state.
+
+- Exit: Terminates all active processes and joins all threads before safely exiting the program.
+
 
 
 
