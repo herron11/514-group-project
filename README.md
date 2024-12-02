@@ -15,11 +15,11 @@ Clone the repository in your ROS2 workspace:
 <br>
 `git clone https://github.com/herron11/514-group-project.git`
 
-Move into the 514-group-project/src folder
+Move into the 514-group-project/src folder:
 <br>
 `cd 514-group-project/src`
 
-Build the makefile and run the program
+Build the makefile and run the program:
 <br>
 ```make```
 <br>
