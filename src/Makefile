@@ -1,11 +1,19 @@
-CC = clang++
-CFLAGS = -Wall -pthread
+CXX = clang++
+CXXFLAGS = -Wall -std=c++17 -pthread
+
+SRCS = thread_manager.cpp
+
 TARGET = thread_manager
 
-all: $(TARGET)
+build: $(SRCS)
+	$(CXX) -o $(TARGET) $(SRCS) $(CXXFLAGS)
 
-$(TARGET): thread_manager.cpp
-	$(CC) $(CFLAGS) -o $(TARGET) thread_manager.cpp
+debug: $(SRCS)
+	$(CXX) -o $(TARGET) $(SRCS) $(CXXFLAGS) -g
 
 clean:
 	rm -f $(TARGET)
+
+install: build
+	@echo "Installing $(TARGET) to /usr/local/bin"
+	cp $(TARGET) /usr/local/bin
