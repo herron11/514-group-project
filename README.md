@@ -43,6 +43,13 @@ After running the program, you will see a menu with the following options:
 
 - Exit: Terminates all active processes and joins all threads before safely exiting the program.
 
+Enter the number in the menu corresponding to the option you want to choose.
 
+</br>
+
+To remove the executable file after you exit the program, run:
+```
+make clean
+```
 
 
