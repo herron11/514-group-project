@@ -6,7 +6,6 @@ This project implements a Process and Thread Manager that allows users to create
 ### Features
 - Process creation and termination
 - Create/manage multiple processes and threads
-- Resource allocation tracking
 - Deadlock Detection
 
 ### How To Run The Program
