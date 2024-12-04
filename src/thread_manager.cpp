@@ -10,6 +10,9 @@
 #include <queue>
 #include <algorithm>
 #include <chrono>
+#include <sstream>
+#include <atomic>
+#include <map>
 
 using namespace std;
 
@@ -152,10 +155,10 @@ bool detectDeadlock() {
 struct ThreadTask {
     int id;
     int priority;
-    function<void()> task;
+    function<string()> task;
 
     bool operator<(const ThreadTask& other) const {
-        return priority < other.priority;
+        return priority > other.priority;
     }
 };
 
@@ -165,6 +168,11 @@ mutex threadPoolMutex;
 condition_variable threadPoolCV;
 bool stopThreadPool = false;
 int maxThreads = 5;
+atomic<bool> taskRunning(false);
+
+map<int, bool> taskCompletionStatus;
+map<int, string> taskOutputs;
+mutex coutMutex;
 
 void threadPoolWorker() {
     while (true) {
@@ -176,21 +184,49 @@ void threadPoolWorker() {
 
         ThreadTask task = threadPoolQueue.top();
         threadPoolQueue.pop();
+
+        taskRunning = true;
+
         lock.unlock();
 
-        cout << "Thread " << task.id << " with priority " << task.priority << " is running.\n";
-        task.task();
-        cout << "Thread " << task.id << " has completed.\n";
+        string output = task.task();
+
+        {
+            lock_guard<mutex> outputLock(threadPoolMutex);
+            taskOutputs[task.id] = output;
+            taskCompletionStatus[task.id] = true;
+        }
+
+        taskRunning = false;
+
+        threadPoolCV.notify_one();
     }
 }
 
-void addTaskToThreadPool(int id, int priority, function<void()> task) {
+void addTaskToThreadPool(int id, int priority, function<string()> task) {
     {
         lock_guard<mutex> lock(threadPoolMutex);
         threadPoolQueue.push({id, priority, task});
-        
+        taskCompletionStatus[id] = false;
     }
     threadPoolCV.notify_one();
+}
+
+void checkCompletedTasks() {
+    lock_guard<mutex> lock(threadPoolMutex);
+    for (auto it = taskCompletionStatus.begin(); it != taskCompletionStatus.end(); ) {
+        if (it->second) {
+            {
+                lock_guard<mutex> coutLock(coutMutex);
+                cout << taskOutputs[it->first];
+                cout << "Task " << it->first << " has been completed.\n";
+            }
+            taskOutputs.erase(it->first);
+            it = taskCompletionStatus.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void startThreadPool(int threadCount) {
@@ -261,6 +297,8 @@ int main() {
         cout << "Enter your choice: ";
         cin >> choice;
 
+        checkCompletedTasks();
+
         switch (choice) {
             case 1:
                 createProcess(resourceCount);
@@ -286,11 +324,13 @@ int main() {
                 int taskId, priority;
                 cout << "Enter Task ID: ";
                 cin >> taskId;
-                cout << "Enter Task Priority (higher is better): ";
+                cout << "Enter Task Priority (higher == more priority): ";
                 cin >> priority;
-                addTaskToThreadPool(taskId, priority, [taskId]() {
+                addTaskToThreadPool(taskId, priority, [taskId]() -> string {
                     this_thread::sleep_for(chrono::seconds(2));
-                    cout << "Task " << taskId << " executed.\n";
+                    ostringstream oss;
+                    oss << "Task " << taskId << " executed.\n";
+                    return oss.str();
                 });
                 break;
             }
