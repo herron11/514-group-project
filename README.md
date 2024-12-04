@@ -4,7 +4,7 @@
 This project implements a Process and Thread Manager that allows users to create and manage processes and threads, tracks resource allocation to processes, create and manages a thread pool, and identifies potential deadlocks in the system.
 
 ### Features
-- Create/manage multiple processes and threads
+- Create and manage multiple processes and threads
 - Thread Pool Management
 - Resource Allocation Tracking
 - Deadlock Detection
@@ -29,7 +29,7 @@ make
 
 ### Usage
 
-After running the program, you will see a menu with the following options:
+After running the program, you will see a menu with the following options. Enter the number in the menu corresponding to the option you want to choose.
 
 - Create a New Process: Forks a new child process and tracks its PID.
 
@@ -49,7 +49,7 @@ After running the program, you will see a menu with the following options:
 
 - Exit: Terminates all active processes and joins all threads before safely exiting the program.
 
-Enter the number in the menu corresponding to the option you want to choose.
+
 
 </br>
 
