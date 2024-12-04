@@ -1,12 +1,14 @@
 # Process and Thread Manager
 
 ### Project Overview
-This project implements a Process and Thread Manager that allows users to create and manage both processes and threads, tracks resource allocation to processes, and identifies potential deadlocks in the system.
+This project implements a Process and Thread Manager that allows users to create and manage processes and threads, tracks resource allocation to processes, create and manages a thread pool, and identifies potential deadlocks in the system.
 
 ### Features
-- Process creation and termination
 - Create/manage multiple processes and threads
+- Thread Pool Management
+- Resource Allocation Tracking
 - Deadlock Detection
+
 
 ### How To Run The Program
 
@@ -40,6 +42,10 @@ After running the program, you will see a menu with the following options:
 - List Active Threads: Displays all active threads.
 
 - Detect Deadlock: Runs the deadlock detection algorithm to identify any processes in a deadlock state.
+  
+- Display Resources: Prints the resource allocation matrix, request matrix, and available resources.
+
+- Add Task to Thread Pool: Add a task to the thread pool by entering a task ID and priority level. 
 
 - Exit: Terminates all active processes and joins all threads before safely exiting the program.
 
