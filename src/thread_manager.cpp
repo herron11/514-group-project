@@ -1,22 +1,25 @@
 #include <iostream>
-#include <unistd.h>      
-#include <sys/wait.h>    
-#include <signal.h>      
-#include <vector>        
-#include <cstdlib>       
-#include <thread>        
-#include <mutex>         
-#include <algorithm> 
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <vector>
+#include <cstdlib>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <algorithm>
+#include <chrono>
 
 using namespace std;
 
 vector<pid_t> activeProcesses;
 vector<thread> activeThreads;
-mutex threadMutex;  
+mutex threadMutex;
 
-vector<vector<int>> allocation; 
-vector<vector<int>> request;    
-vector<int> available; 
+vector<vector<int>> allocation;
+vector<vector<int>> request;
+vector<int> available;
 
 void initializeResources(int resourceCount, int processCount) {
     allocation = vector<vector<int>>(processCount, vector<int>(resourceCount, 0));
@@ -29,10 +32,10 @@ void createThread() {
     int threadId = activeThreads.size() + 1;
     activeThreads.emplace_back([threadId]() {
         cout << "Thread " << threadId << " is running.\n";
-        cout.flush(); 
+        cout.flush();
         this_thread::sleep_for(chrono::seconds(1)); //simulate process work
         cout << "Thread " << threadId << " has completed.\n";
-        cout.flush(); 
+        cout.flush();
     });
 
     if (activeThreads.back().joinable()) {
@@ -53,7 +56,7 @@ void listThreads() {
 }
 
 void joinThreads() {
-    lock_guard<mutex> lock(threadMutex); 
+    lock_guard<mutex> lock(threadMutex);
     for (thread &t : activeThreads) {
         if (t.joinable()) {
             t.join();
@@ -69,7 +72,7 @@ void createProcess(int resourceCount) {
         exit(EXIT_FAILURE);
     } else if (pid == 0) {
         cout << "Child Process: PID " << getpid() << ", Parent PID " << getppid() << "\n";
-        cout.flush(); 
+        cout.flush();
         while (true) {
             sleep(1); //needed so the child and parent process print before the menu prints again
         }
@@ -80,12 +83,13 @@ void createProcess(int resourceCount) {
         cout.flush();
     }
 }
+
 void terminateProcess(pid_t pid) {
     auto it = find(activeProcesses.begin(), activeProcesses.end(), pid);
     if (it != activeProcesses.end()) {
-        if (kill(pid, SIGTERM) == 0) { 
+        if (kill(pid, SIGTERM) == 0) {
             cout << "Terminated Process with PID " << pid << "\n";
-            activeProcesses.erase(it); 
+            activeProcesses.erase(it);
         } else {
             cerr << "Failed to terminate Process with PID " << pid << "\n";
         }
@@ -93,6 +97,7 @@ void terminateProcess(pid_t pid) {
         cerr << "Process with PID " << pid << " not active!\n";
     }
 }
+
 void listProcesses() {
     if (activeProcesses.empty()) {
         cout << "No active processes.\n";
@@ -143,13 +148,105 @@ bool detectDeadlock() {
     cout << "No deadlock detected.\n";
     return false;
 }
+
+struct ThreadTask {
+    int id;
+    int priority;
+    function<void()> task;
+
+    bool operator<(const ThreadTask& other) const {
+        return priority < other.priority;
+    }
+};
+
+priority_queue<ThreadTask> threadPoolQueue;
+vector<thread> threadPool;
+mutex threadPoolMutex;
+condition_variable threadPoolCV;
+bool stopThreadPool = false;
+int maxThreads = 5;
+
+void threadPoolWorker() {
+    while (true) {
+        unique_lock<mutex> lock(threadPoolMutex);
+        threadPoolCV.wait(lock, [] { return !threadPoolQueue.empty() || stopThreadPool; });
+
+        if (stopThreadPool && threadPoolQueue.empty())
+            break;
+
+        ThreadTask task = threadPoolQueue.top();
+        threadPoolQueue.pop();
+        lock.unlock();
+
+        cout << "Thread " << task.id << " with priority " << task.priority << " is running.\n";
+        task.task();
+        cout << "Thread " << task.id << " has completed.\n";
+    }
+}
+
+void addTaskToThreadPool(int id, int priority, function<void()> task) {
+    {
+        lock_guard<mutex> lock(threadPoolMutex);
+        threadPoolQueue.push({id, priority, task});
+        
+    }
+    threadPoolCV.notify_one();
+}
+
+void startThreadPool(int threadCount) {
+    for (int i = 0; i < threadCount; ++i) {
+        threadPool.emplace_back(threadPoolWorker);
+    }
+}
+
+void stopThreadPoolManager() {
+    {
+        lock_guard<mutex> lock(threadPoolMutex);
+        stopThreadPool = true;
+    }
+    threadPoolCV.notify_all();
+    for (thread& t : threadPool) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+}
+
+void displayResources() {
+    cout << "Current Resource Allocation:\n";
+    cout << "Allocation Matrix:\n";
+    for (const auto& row : allocation) {
+        for (int val : row) {
+            cout << val << " ";
+        }
+        cout << "\n";
+    }
+
+    cout << "Request Matrix:\n";
+    for (const auto& row : request) {
+        for (int val : row) {
+            cout << val << " ";
+        }
+        cout << "\n";
+    }
+
+    cout << "Available Resources:\n";
+    for (int val : available) {
+        cout << val << " ";
+    }
+    cout << "\n";
+}
+
 int main() {
     int choice;
     pid_t pidToTerminate;
     int resourceCount = 3; // Example: 3 resource types
+    int processCount = 3;
 
-    initializeResources(resourceCount, 0);
-    cout << "Process and Thread Manager with Deadlock Detection\n";
+    initializeResources(resourceCount, processCount);
+    cout << "Process and Thread Manager with Deadlock Detection and Thread Pool\n";
+
+    startThreadPool(maxThreads);
 
     while (true) {
         cout << "\nMenu:\n";
@@ -158,8 +255,9 @@ int main() {
         cout << "3. List Active Processes\n";
         cout << "4. Detect Deadlock\n";
         cout << "5. List Active Threads\n";
-        cout << "6. Detect Deadlock\n";
-        cout << "7. Exit\n";
+        cout << "6. Display Resources\n";
+        cout << "7. Add Task to Thread Pool\n";
+        cout << "8. Exit\n";
         cout << "Enter your choice: ";
         cin >> choice;
 
@@ -168,31 +266,38 @@ int main() {
                 createProcess(resourceCount);
                 break;
             case 2:
-                createThread();
-                break;
-            case 3:
                 cout << "Enter PID to terminate: ";
                 cin >> pidToTerminate;
                 terminateProcess(pidToTerminate);
                 break;
-            case 4:
+            case 3:
                 listProcesses();
+                break;
+            case 4:
+                detectDeadlock();
                 break;
             case 5:
                 listThreads();
                 break;
             case 6:
-                detectDeadlock();
+                displayResources();
                 break;
-            case 7:
-                cout << "Exiting. Terminating all active processes and joining all threads...\n";
-                for (pid_t pid : activeProcesses) {
-                    kill(pid, SIGTERM);
-                }
-                activeProcesses.clear();
-                joinThreads();
+            case 7: {
+                int taskId, priority;
+                cout << "Enter Task ID: ";
+                cin >> taskId;
+                cout << "Enter Task Priority (higher is better): ";
+                cin >> priority;
+                addTaskToThreadPool(taskId, priority, [taskId]() {
+                    this_thread::sleep_for(chrono::seconds(2));
+                    cout << "Task " << taskId << " executed.\n";
+                });
+                break;
+            }
+            case 8:
+                cout << "Exiting. Terminating all active processes and stopping thread pool...\n";
+                stopThreadPoolManager();
                 return 0;
-
 
             default:
                 cout << "Invalid choice. Please try again.\n";
