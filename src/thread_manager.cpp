@@ -16,6 +16,16 @@
 
 using namespace std;
 
+struct ThreadTask {
+    int id;
+    int priority;
+    function<string()> task;
+
+    bool operator<(const ThreadTask& other) const {
+        return priority > other.priority;
+    }
+};
+
 vector<pid_t> activeProcesses;
 vector<thread> activeThreads;
 mutex threadMutex;
@@ -23,6 +33,18 @@ mutex threadMutex;
 vector<vector<int>> allocation;
 vector<vector<int>> request;
 vector<int> available;
+
+priority_queue<ThreadTask> threadPoolQueue;
+vector<thread> threadPool;
+mutex threadPoolMutex;
+condition_variable threadPoolCV;
+bool stopThreadPool = false;
+int maxThreads = 5;
+atomic<bool> taskRunning(false);
+
+map<int, bool> taskCompletionStatus;
+map<int, string> taskOutputs;
+mutex coutMutex;
 
 void initializeResources(int resourceCount, int processCount) {
     allocation = vector<vector<int>>(processCount, vector<int>(resourceCount, 0));
@@ -48,16 +70,13 @@ void createThread() {
 
 void listThreads() {
     lock_guard<mutex> lock(threadMutex);
-    if (activeThreads.empty()) {
+    if (threadPool.empty()) {
         cout << "No active threads.\n";
     } else {
-        cout << "Active Threads:\n";
-        for (size_t i = 0; i < activeThreads.size(); ++i) {
-            cout << " - Thread ID: " << i + 1 << "\n";
-        }
+        cout << "Active Threads: " << threadPool.size() << " in pool\n";
+        cout << "Created threads: " << activeThreads.size() << "\n";
     }
 }
-
 void joinThreads() {
     lock_guard<mutex> lock(threadMutex);
     for (thread &t : activeThreads) {
@@ -152,27 +171,6 @@ bool detectDeadlock() {
     return false;
 }
 
-struct ThreadTask {
-    int id;
-    int priority;
-    function<string()> task;
-
-    bool operator<(const ThreadTask& other) const {
-        return priority > other.priority;
-    }
-};
-
-priority_queue<ThreadTask> threadPoolQueue;
-vector<thread> threadPool;
-mutex threadPoolMutex;
-condition_variable threadPoolCV;
-bool stopThreadPool = false;
-int maxThreads = 5;
-atomic<bool> taskRunning(false);
-
-map<int, bool> taskCompletionStatus;
-map<int, string> taskOutputs;
-mutex coutMutex;
 
 void threadPoolWorker() {
     while (true) {
@@ -273,6 +271,7 @@ void displayResources() {
     cout << "\n";
 }
 
+
 int main() {
     int choice;
     pid_t pidToTerminate;
@@ -281,19 +280,19 @@ int main() {
 
     initializeResources(resourceCount, processCount);
     cout << "Process and Thread Manager with Deadlock Detection and Thread Pool\n";
-
     startThreadPool(maxThreads);
 
     while (true) {
         cout << "\nMenu:\n";
         cout << "1. Create a New Process\n";
         cout << "2. Terminate a Process\n";
-        cout << "3. List Active Processes\n";
-        cout << "4. Detect Deadlock\n";
+        cout << "3. Create a New Thread\n";
+        cout << "4. List Active Processes\n";
         cout << "5. List Active Threads\n";
         cout << "6. Display Resources\n";
         cout << "7. Add Task to Thread Pool\n";
-        cout << "8. Exit\n";
+        cout << "8. Detect Deadlock\n";
+        cout << "9. Exit\n";
         cout << "Enter your choice: ";
         cin >> choice;
 
@@ -309,10 +308,10 @@ int main() {
                 terminateProcess(pidToTerminate);
                 break;
             case 3:
-                listProcesses();
+                createThread();
                 break;
             case 4:
-                detectDeadlock();
+                listProcesses();
                 break;
             case 5:
                 listThreads();
@@ -334,11 +333,13 @@ int main() {
                 });
                 break;
             }
-            case 8:
+             case 8:
+                detectDeadlock();
+                break;
+            case 9:
                 cout << "Exiting. Terminating all active processes and stopping thread pool...\n";
                 stopThreadPoolManager();
                 return 0;
-
             default:
                 cout << "Invalid choice. Please try again.\n";
         }
