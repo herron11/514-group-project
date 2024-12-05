@@ -46,19 +46,18 @@ map<int, bool> taskCompletionStatus;
 map<int, string> taskOutputs;
 mutex coutMutex;
 
-void initializeResources(int resourceCount, int processCount) {
-    allocation = vector<vector<int>>(processCount, vector<int>(resourceCount, 0));
-    request = vector<vector<int>>(processCount, vector<int>(resourceCount, 0));
-    available = vector<int>(resourceCount, 3);
+void initializeResources(int resourceCount) {
+    allocation.clear();
+    request.clear();
+    available = vector<int>(resourceCount, 9); 
 }
-
 void createThread() {
     lock_guard<mutex> lock(threadMutex);
     int threadId = activeThreads.size() + 1;
     activeThreads.emplace_back([threadId]() {
         cout << "Thread " << threadId << " is running.\n";
         cout.flush();
-        this_thread::sleep_for(chrono::seconds(1)); //simulate process work
+        this_thread::sleep_for(chrono::seconds(1)); //simulate thread work
         cout << "Thread " << threadId << " has completed.\n";
         cout.flush();
     });
@@ -102,16 +101,54 @@ void createProcess(int resourceCount) {
         usleep(50000); //needed so the child and parent process print before the menu prints again (50ms delay)
         cout << "Parent Process: Created Child with PID " << pid << "\n";
         activeProcesses.push_back(pid);
-        cout.flush();
+        vector<int> newRequest(resourceCount);
+        srand(time(0)); 
+        for (int i = 0; i < resourceCount; ++i) {
+            newRequest[i] = rand() % 6; 
+        }
+
+        bool canAllocate = true;
+        for (int i = 0; i < resourceCount; ++i) {
+            if (newRequest[i] > available[i]) {
+                canAllocate = false;
+                break;
+            }
+        }
+        if (canAllocate) {
+            for (int i = 0; i < resourceCount; ++i) {
+                available[i] -= newRequest[i];
+            }
+            allocation.push_back(newRequest);
+            request.push_back(vector<int>(resourceCount, 0));
+            cout << "Process " << pid << " created and resources allocated.\n";
+        } else {
+            allocation.push_back(vector<int>(resourceCount, 0)); 
+            request.push_back(newRequest);
+            cout << "Process " << pid << " created but requested resources are unavailable.\n";
+            cout << "Requested: ";
+            for (int r : newRequest) {
+                cout << r << " ";
+            }
+            cout << "\n";
+        }
     }
 }
 
 void terminateProcess(pid_t pid) {
     auto it = find(activeProcesses.begin(), activeProcesses.end(), pid);
     if (it != activeProcesses.end()) {
+        int index = distance(activeProcesses.begin(), it);
+
+        for (int i = 0; i < available.size(); ++i) {
+            available[i] += allocation[index][i];
+        }
+
+        allocation.erase(allocation.begin() + index);
+        request.erase(request.begin() + index);
+        activeProcesses.erase(it);
+
         if (kill(pid, SIGTERM) == 0) {
             cout << "Terminated Process with PID " << pid << "\n";
-            activeProcesses.erase(it);
         } else {
             cerr << "Failed to terminate Process with PID " << pid << "\n";
         }
@@ -247,38 +284,44 @@ void stopThreadPoolManager() {
 }
 
 void displayResources() {
-    cout << "Current Resource Allocation:\n";
-    cout << "Allocation Matrix:\n";
-    for (const auto& row : allocation) {
-        for (int val : row) {
-            cout << val << " ";
-        }
-        cout << "\n";
-    }
-
-    cout << "Request Matrix:\n";
-    for (const auto& row : request) {
-        for (int val : row) {
-            cout << val << " ";
-        }
-        cout << "\n";
-    }
-
-    cout << "Available Resources:\n";
-    for (int val : available) {
-        cout << val << " ";
+    cout << "\nResource Allocation Tracking:\n";
+    cout << "Available Resources: ";
+    for (size_t i = 0; i < available.size(); ++i) {
+        int temp = available[i];
+        cout << temp << " ";
     }
     cout << "\n";
+    if (allocation.empty()) {
+        cout << "No active processes to display resource allocation.\n";
+        return;
+    }
+    cout << "Allocation Matrix:\n";
+    for (size_t i = 0; i < allocation.size(); ++i) {
+        cout << "Process " << activeProcesses[i] << ": ";
+        for (size_t j = 0; j < allocation[i].size(); ++j) {
+            int temp = allocation[i][j];
+            cout << temp << " ";
+        }
+        cout << "\n";
+    }
+    cout << "Request Matrix:\n";
+    for (size_t i = 0; i < request.size(); ++i) {
+        cout << "Process " << activeProcesses[i] << ": ";
+        for (size_t j = 0; j < request[i].size(); ++j) {
+            int temp = request[i][j];
+            cout << temp << " ";
+        }
+        cout << "\n";
+    }
 }
 
-
 int main() {
+    srand(time(0));
     int choice;
     pid_t pidToTerminate;
     int resourceCount = 3; // Example: 3 resource types
-    int processCount = 3;
 
-    initializeResources(resourceCount, processCount);
+    initializeResources(resourceCount);
     cout << "Process and Thread Manager with Deadlock Detection and Thread Pool\n";
     startThreadPool(maxThreads);
 
