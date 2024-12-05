@@ -70,3 +70,4 @@ To test the resource allocation tracking:
 - https://man.freebsd.org/cgi/man.cgi?query=getpid&sektion=2
 - https://www.cs.colby.edu/maxwell/courses/tutorials/maketutor/
 - https://en.cppreference.com/w/cpp/types/size_t
+- https://youtu.be/-Qa1RqmXKG0
