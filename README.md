@@ -26,37 +26,33 @@ Build the makefile and run the program:
 make
 ./thread_manager
 ```
-
-### Usage
-
-After running the program, you will see a menu with the following options. Enter the number in the menu corresponding to the option you want to choose.
-
-- Create a New Process: Forks a new child process and tracks its PID.
-
-- Create a New Thread: Starts a new thread that simulates work.
-
-- Terminate a Process: Enter the PID of the process you want to terminate.
-
-- List Active Processes: Displays all active processes and their PIDs.
-
-- List Active Threads: Display the number of active threads in the pool and created by the user.
-
-- Detect Deadlock: Runs the deadlock detection algorithm to identify any processes in a deadlock state.
-  
-- Display Resources: Prints the resource allocation matrix, request matrix, and available resources.
-
-- Add Task to Thread Pool: Add a task to the thread pool by entering a task ID and priority level. 
-
-- Exit: Terminates all active processes and joins all threads before safely exiting the program.
-
-
-
-</br>
-
 To remove the executable file after you exit the program, run:
 ```
 make clean
 ```
+
+### Usage
+
+To test the code, run the program and you will see a menu with the options below. Enter the number in the menu corresponding to the option you want to test.
+
+1. Create a New Process: Forks a new child process, tracks its PID, and requests resources.
+2. Terminate a Process: Terminate a process and releases its resources.
+3. Create a New Thread: Starts a new thread that simulates work.
+4. List Active Processes: Displays all active processes and their PIDs.
+5. List Active Threads: Display the number of active threads in the pool and created by the user.
+6. Display Resources: Prints available resources, allocation matrix, and request matrix.
+7. Add Task to Thread Pool: Add a task to the thread pool by entering a task ID and priority level.
+8. Detect Deadlock: Runs the deadlock detection algorithm to identify any processes in a deadlock state.
+9. Exit: Terminates all active processes and joins all threads before safely exiting the program.
+
+To test the resource allocation tracking:
+- Press 6 to display the currently available resources. You should see 9 9 9.
+- Press 1 to create a process.
+- Press 6 again to see resources available after fulfilling the processes request.
+- You can create more processes or press 2 to terminate the initial process you created.
+- Press 6 again to confirm that the process has released its resources back into the available pool.
+
+
 ### Design Decisions
 - For simplicity, threads and process sleep to simulate work.
 - We allow the user to create threads separate from the pool, bypassing the pool overhead.
@@ -64,6 +60,8 @@ make clean
 
 ### Known Limitations
 - The threads spawned during process creation are not tracked in the thread counts.
+- Resources used by the threads are not tracked.
+- Process waiting for resources when they are unavailable do not get the resources when they become available.
 
 ### References
 - https://www.geeksforgeeks.org/std-mutex-in-cpp/
@@ -71,3 +69,4 @@ make clean
 - https://man.freebsd.org/cgi/man.cgi?fork(2)
 - https://man.freebsd.org/cgi/man.cgi?query=getpid&sektion=2
 - https://www.cs.colby.edu/maxwell/courses/tutorials/maketutor/
+- https://en.cppreference.com/w/cpp/types/size_t
