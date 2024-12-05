@@ -39,7 +39,7 @@ After running the program, you will see a menu with the following options. Enter
 
 - List Active Processes: Displays all active processes and their PIDs.
 
-- List Active Threads: Displays all active threads.
+- List Active Threads: Display the number of active threads in the pool and created by the user.
 
 - Detect Deadlock: Runs the deadlock detection algorithm to identify any processes in a deadlock state.
   
@@ -57,5 +57,16 @@ To remove the executable file after you exit the program, run:
 ```
 make clean
 ```
+### Design Decisions
+- For simplicity, threads and process sleep to simulate work.
+- We allow the user to create threads separate from the pool, bypassing the pool overhead.
+- We implemented a menu for accesibility and ease of use for the user.
 
+### Known Limitations
+- The threads spawned during process creation are not tracked in the thread counts.
 
+### References
+- https://www.geeksforgeeks.org/std-mutex-in-cpp/
+- https://en.cppreference.com/w/cpp/thread/mutex
+- https://man.freebsd.org/cgi/man.cgi?fork(2)
+- https://man.freebsd.org/cgi/man.cgi?query=getpid&sektion=2
