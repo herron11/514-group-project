@@ -71,3 +71,8 @@ To test the resource allocation tracking:
 - https://www.cs.colby.edu/maxwell/courses/tutorials/maketutor/
 - https://en.cppreference.com/w/cpp/types/size_t
 - https://youtu.be/-Qa1RqmXKG0
+
+### Authors
+- Andre' Herron
+- Matthew Akinmolayan
+- Tobi Ayodeji
