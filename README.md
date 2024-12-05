@@ -70,3 +70,4 @@ make clean
 - https://en.cppreference.com/w/cpp/thread/mutex
 - https://man.freebsd.org/cgi/man.cgi?fork(2)
 - https://man.freebsd.org/cgi/man.cgi?query=getpid&sektion=2
+- https://www.cs.colby.edu/maxwell/courses/tutorials/maketutor/
