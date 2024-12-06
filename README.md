@@ -75,4 +75,5 @@ To test the resource allocation tracking:
 ### Authors
 - Andre' Herron
 - Matthew Akinmolayan
-- Tobi Ayodeji
+- Tobiloba Ayodeji
+- Tobiloba Ifenikalo
