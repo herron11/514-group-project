@@ -15,6 +15,7 @@
 #include <sstream>
 #include <atomic>
 #include <map>
+#include <functional>
 
 using namespace std;
 
@@ -23,10 +24,15 @@ struct ThreadTask {
     int priority;
     function<string()> task;
 
+    ThreadTask(int id, int priority, function<string()> task)
+        : id(id), priority(priority), task(task) {}
+
     bool operator<(const ThreadTask& other) const {
         return priority > other.priority;
     }
 };
+
+void priorityInheritanceProtocol(int taskPriority, int &sharedPriority, mutex &m);
 
 vector<pid_t> activeProcesses;
 vector<thread> activeThreads;
@@ -244,7 +250,7 @@ void addTaskToThreadPool(int id, int priority, function<string()> task, int *sha
    priorityInheritanceProtocol(priority, *sharedData, priorityMutex);
     {
         lock_guard<mutex> lock(threadPoolMutex);
-        threadPoolQueue.push({id, *sharedData, task});
+        threadPoolQueue.emplace(id, priority, task);
         taskCompletionStatus[id] = false;
     }
     threadPoolCV.notify_one();
@@ -413,7 +419,7 @@ if (sharedData == (int *)-1) {
         }
     }
 shmdt(sharedData);
-shmctl(shm_id, IPC_RMID, nullptr)
+shmctl(shm_id, IPC_RMID, nullptr);
 
     return 0;
 }
