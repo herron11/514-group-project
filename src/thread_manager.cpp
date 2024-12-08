@@ -1,3 +1,5 @@
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #include <iostream>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -238,10 +240,11 @@ void threadPoolWorker() {
     }
 }
 
-void addTaskToThreadPool(int id, int priority, function<string()> task) {
+void addTaskToThreadPool(int id, int priority, function<string()> task, int *sharedData, mutex &priorityMutex) {
+   priorityInheritanceProtocol(priority, *sharedData, priorityMutex);
     {
         lock_guard<mutex> lock(threadPoolMutex);
-        threadPoolQueue.push({id, priority, task});
+        threadPoolQueue.push({id, *sharedData, task});
         taskCompletionStatus[id] = false;
     }
     threadPoolCV.notify_one();
@@ -313,7 +316,16 @@ void displayResources() {
         }
         cout << "\n";
     }
+
 }
+
+void priorityInheritanceProtocol(int taskPriority, int &sharedPriority, mutex &m) {
+    lock_guard<mutex> lock(m);
+    if (taskPriority > sharedPriority) {
+        sharedPriority = taskPriority;
+    }
+}
+
 
 int main() {
     srand(time(0));
@@ -324,6 +336,19 @@ int main() {
     initializeResources(resourceCount);
     cout << "Process and Thread Manager with Deadlock Detection and Thread Pool\n";
     startThreadPool(maxThreads);
+
+int shm_id = shmget(IPC_PRIVATE, sizeof(int), IPC_CREAT | 0666);
+if (shm_id == -1) {
+    cerr << "Failed to create shared memory.\n";
+    exit(EXIT_FAILURE);
+}
+int *sharedData = (int *)shmat(shm_id, nullptr, 0);
+if (sharedData == (int *)-1) {
+    cerr << "Failed to attach shared memory.\n";
+    exit(EXIT_FAILURE);
+}
+*sharedData = 0;
+
 
     while (true) {
         cout << "\nMenu:\n";
@@ -373,7 +398,7 @@ int main() {
                     ostringstream oss;
                     oss << "Task " << taskId << " executed.\n";
                     return oss.str();
-                });
+		}, sharedData, threadMutex);
                 break;
             }
              case 8:
@@ -387,6 +412,8 @@ int main() {
                 cout << "Invalid choice. Please try again.\n";
         }
     }
+shmdt(sharedData);
+shmctl(shm_id, IPC_RMID, nullptr)
 
     return 0;
 }
